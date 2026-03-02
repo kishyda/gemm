@@ -1,0 +1,2 @@
+CompileFlags:
+  Add: [-xcuda, "--no-cuda-version-check", "-I/home/linuxbrew/.linuxbrew/Cellar/python@3.14/3.14.3_1/include/python3.14", "-I/home/oak/dev/gemm/.venv/lib/python3.14/site-packages/nanobind/include"]

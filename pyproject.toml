@@ -1,0 +1,23 @@
+[project]
+name = "gemm"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "matplotlib>=3.10.8",
+    "numpy>=2.4.2",
+    "pandas>=3.0.1",
+    "torch>=2.10.0",
+    "triton>=3.6.0",
+    "nanobind>=2.12.0",
+    "ninja"
+]
+
+[tool.setup.scripts]
+setup = "cmake -S src/CudaKernels -B src/CudaKernels/build"
+build = "cmake --build src/CudaKernels/build"
+
+[build-system]
+requires = ["setuptools", "torch"]
+build-backend = "setuptools.build_meta"
