@@ -11,5 +11,5 @@ build-kernels:
 # 	}
 # 	find src/CudaKernels/build -type f \( -name "*.cu") -exec generate_docs({})
 
-run: setup-kernels build-kernels
+run:
 	uv run src/main.py 

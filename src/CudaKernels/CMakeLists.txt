@@ -5,6 +5,7 @@ set(CMAKE_PREFIX_PATH "/home/oak/dev/gemm/.venv/lib/python3.14/site-packages/nan
 
 enable_language(CUDA)
 
+find_package(CUDAToolkit REQUIRED)
 find_package(Python 3.14 COMPONENTS Interpreter Development.Module REQUIRED)
 
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -17,10 +18,12 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE nanobind_ROOT)
 find_package(nanobind CONFIG REQUIRED)
 
-set(modules gemm_01 gemm_02)
+set(modules gemm_01 gemm_02 gemm_03 gemm_04 gemm_05 gemm_06 cublas test)
 
 foreach(mod IN LISTS modules)
     nanobind_add_module("${mod}" "${mod}.cu")
+
+    target_link_libraries("${mod}" PRIVATE CUDA::cublas CUDA::cudart)
 
     # This runs AFTER the .so file is successfully created
     add_custom_command(
