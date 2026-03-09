@@ -1,5 +1,9 @@
 #include "nanobind/nb_defs.h"
 #include <nanobind/nanobind.h>
+#include <nanobind/ndarray.h>
+
+namespace nb = nanobind;
+using namespace nb::literals;
 
 template <typename T>
 __global__ void gemm_01(size_t m, size_t n, size_t k, T alpha, T const* A,
@@ -26,17 +30,17 @@ __global__ void gemm_01(size_t m, size_t n, size_t k, T alpha, T const* A,
 }
 
 template <typename T>
-void launch_gemm_01(size_t m, size_t n, size_t k, T const* alpha,
+void launch_gemm_01(size_t m, size_t n, size_t k, T const alpha,
                             T const* A, size_t lda, T const* B, size_t ldb,
-                            T const* beta, T* C, size_t ldc
+                            T const beta, T* C, size_t ldc
                             )
 {
     dim3 const block_dim{32U, 32U, 1U};
     dim3 const grid_dim{
         (static_cast<unsigned int>(m) + block_dim.x - 1U) / block_dim.x,
         (static_cast<unsigned int>(n) + block_dim.y - 1U) / block_dim.y, 1U};
-    gemm_01<T><<<grid_dim, block_dim, 0U>>>(m, n, k, *alpha, A, lda, B,
-                                                     ldb, *beta, C, ldc);
+    gemm_01<T><<<grid_dim, block_dim, 0U>>>(m, n, k, alpha, A, lda, B,
+                                                     ldb, beta, C, ldc);
 }
 
 void function() {
@@ -69,7 +73,7 @@ void function() {
     // Launch the kernel
     cudaStream_t stream;
     cudaStreamCreate(&stream);
-    launch_gemm_01(m, n, k, &alpha, d_A, k, d_B, n, &beta, d_C, n);
+    launch_gemm_01(m, n, k, alpha, d_A, k, d_B, n, beta, d_C, n);
 
     // Copy result back to host
     cudaMemcpy(h_C, d_C, m * n * sizeof(float), cudaMemcpyDeviceToHost);
@@ -95,18 +99,19 @@ void function() {
 
 // Explicit instantiation.
 template void launch_gemm_01<float>(size_t m, size_t n, size_t k,
-                                            float const* alpha, float const* A,
+                                            float const alpha, float const* A,
                                             size_t lda, float const* B,
-                                            size_t ldb, float const* beta,
+                                            size_t ldb, float const beta,
                                             float* C, size_t ldc);
 template void launch_gemm_01<double>(size_t m, size_t n, size_t k,
-                                             double const* alpha,
+                                             double const alpha,
                                              double const* A, size_t lda,
                                              double const* B, size_t ldb,
-                                             double const* beta, double* C,
+                                             double const beta, double* C,
                                              size_t ldc);
 
 NB_MODULE(gemm_01, m) {
-    m.def("launch_gemm_float", &launch_gemm_01<float>);
-    m.def("launch_gemm_double", &launch_gemm_01<double>);
+    m.def("launch_gemm_float", [](size_t m, size_t n, size_t k, float alpha, nb::ndarray<>& A, size_t lda, nb::ndarray<>& B, size_t ldb, float beta, nb::ndarray<>& C, size_t ldc){
+        launch_gemm_01<float>(m, n, k, alpha, (float*) A.data(), lda, (float*) B.data(), ldb, beta, (float*) C.data(), ldc);
+    }, "m"_a, "n"_a, "k"_a, "alpha"_a, "A"_a, "lda"_a, "B"_a, "ldb"_a, "beta"_a, "C"_a, "ldc"_a);
 }
