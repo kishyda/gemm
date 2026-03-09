@@ -29,28 +29,21 @@ __global__ void gemm_02(size_t m, size_t n, size_t k, T alpha, T const* A,
 }
 
 template <typename T>
-void launch_gemm_02(size_t m, size_t n, size_t k, T const* alpha,
+void launch_gemm_02(size_t m, size_t n, size_t k, T const alpha,
                     T const* A, size_t lda, T const* B, size_t ldb,
-                    T const* beta, T* C, size_t ldc)
+                    T const beta, T* C, size_t ldc)
 {
     dim3 const block_dim{32U, 32U, 1U};
     dim3 const grid_dim{
         (static_cast<unsigned int>(n) + block_dim.x - 1U) / block_dim.x,
         (static_cast<unsigned int>(m) + block_dim.y - 1U) / block_dim.y, 1U};
-    gemm_02<T><<<grid_dim, block_dim, 0U>>>(m, n, k, *alpha, A, lda, B, ldb, *beta, C, ldc);
+    gemm_02<T><<<grid_dim, block_dim, 0U>>>(m, n, k, alpha, A, lda, B, ldb, beta, C, ldc);
 }
 
 
 
 NB_MODULE(gemm_02, m) {
     m.def("launch_gemm_float", [](size_t m, size_t n, size_t k, float alpha, nb::ndarray<>& A, size_t lda, nb::ndarray<>& B, size_t ldb, float beta, nb::ndarray<>& C, size_t ldc){
-        dim3 const block_dim{32U, 32U, 1U};
-        dim3 const grid_dim{
-            (static_cast<unsigned int>(n) + block_dim.x - 1U) / block_dim.x,
-            (static_cast<unsigned int>(m) + block_dim.y - 1U) / block_dim.y, 1U
-        };
-
-        gemm_02<<<grid_dim, block_dim, 0U>>>(m, n, k, alpha, (float*) A.data(), lda, (float*) B.data(), ldb, beta, (float*) C.data(), ldc);
-
+        launch_gemm_02<float>(m, n, k, alpha, (float*) A.data(), lda, (float*) B.data(), ldb, beta, (float*) C.data(), ldc);
     }, "m"_a, "n"_a, "k"_a, "alpha"_a, "A"_a, "lda"_a, "B"_a, "ldb"_a, "beta"_a, "C"_a, "ldc"_a);
 }
