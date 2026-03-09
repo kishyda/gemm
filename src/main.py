@@ -1,73 +1,39 @@
-import time
-import CudaKernels.build.gemm_02 as gemm_02 
-import CudaKernels.build.test as test 
+import CudaKernels
 import CudaKernels.build.cublas as cublas
-
-import numpy as np
+from benchmark import measure_execution_time_ms
+from optimize import optimize 
 import torch 
 
-m, n, k = 2048, 2048, 2048
+from pprint import pprint
 
-torch.backends.cuda.matmul.allow_tf32 = False
-torch.backends.cudnn.allow_tf32 = False
+def old():
+    m, n, k = 2048, 2048, 2048
 
-a = torch.arange(m * k, dtype=torch.float, device="cuda").reshape(m,k)
-b = torch.arange(k * n, dtype=torch.float, device="cuda").reshape(k,n)
-c = torch.arange(m * n, dtype=torch.float, device="cuda").reshape(m,n)
-# a = torch.arange(4_194_304, dtype=torch.float, device="cuda").reshape(2048,2048)
-# b = torch.arange(4_194_304, dtype=torch.float, device="cuda").reshape(2048,2048)
-# c = torch.arange(4_194_304, dtype=torch.float, device="cuda").reshape(2048,2048)
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
 
-# test.vectorAdd(a, b, c, 256)
+    a = torch.arange(m * k, dtype=torch.float, device="cuda").reshape(m,k)
+    b = torch.arange(k * n, dtype=torch.float, device="cuda").reshape(k,n)
+    c = torch.arange(m * n, dtype=torch.float, device="cuda").reshape(m,n)
 
-def benchmark(name, func, args):
-    # 1. WARMUP: Run 10 times to let the GPU clocks ramp up
-    for _ in range(10):
-        func(*args)
-    torch.cuda.synchronize()
+    t_torch  = measure_execution_time_ms("torch", torch.matmul, (a, b))
+    t_cublas = measure_execution_time_ms("cublas", cublas.launch_gemm_float, (m,n,k, 1, a, m, b, n, 0, c, k))
+    params = CudaKernels.GemmParams[float](m=m,n=n,k=k, alpha=1, A=a, lda=m, B=b, ldb=n, beta=0, C=c, ldc=k)
+    print(params)
+    t_custom = measure_execution_time_ms("custom", CudaKernels.launch_gemm_02, params)
 
-    # 2. ACTUAL TIMING: Use CUDA Events (not perf_counter)
-    start_event = torch.cuda.Event(enable_timing=True)
-    end_event = torch.cuda.Event(enable_timing=True)
-    
-    start_event.record()
-    func(*args)
-    end_event.record()
-    
-    # 3. SYNC: Wait for the specific end event
-    torch.cuda.synchronize()
-    
-    return start_event.elapsed_time(end_event)
+    CudaKernels.launch_gemm_02(CudaKernels.GemmParams[float](m=m, n=n, k=k, 
+                                                            alpha=1, A=a, lda=m, 
+                                                            B=b, ldb=n, beta=0, 
+                                                            C=c, ldc=k))
 
-t_custom = benchmark("custom", gemm_02.launch_gemm_float, (m,n,k, 1, a, m, b, n, 0, c, k))
-t_torch  = benchmark("torch", torch.matmul, (a, b))
-t_cublas = benchmark("cublas", cublas.launch_gemm_float, (m,n,k, 1, a, m, b, n, 0, c, k))
+    print(f"Custom: {t_custom:.4f} ms")
+    print(f"Torch:  {t_torch:.4f} ms")
+    print(f"cuBLAS: {t_cublas:.4f} ms")
 
-print(f"Custom: {t_custom:.4f} ms")
-print(f"Torch:  {t_torch:.4f} ms")
-print(f"cuBLAS: {t_cublas:.4f} ms")
+    print(f"{t_cublas / t_custom * 100 :.4f}% of cublas performance")
 
-print(f"{t_cublas / t_custom:.4f}")
+kernels = [getattr(CudaKernels, name) for name in CudaKernels.__all__ if name.startswith("launch_")]
+optimizer_results = [optimize(kernel) for kernel in kernels]
 
-# begin = time.perf_counter()
-# gemm_02.launch_gemm_float(m,n,k, 1, a, m, b, n, 0, c, k)
-# torch.cuda.synchronize()
-# end = time.perf_counter() 
-# time_for_custom_gemm = end - begin
-
-# begin = time.perf_counter()
-# torch.matmul(a, b)
-# torch.cuda.synchronize()
-# end = time.perf_counter()
-
-# time_for_torch_gem = end - begin
-
-# begin = time.perf_counter()
-# cublas.launch_gemm_float(m,n,k, 1, a, m, b, n, 0, c, k)
-# torch.cuda.synchronize()
-# end = time.perf_counter()
-# time_for_cublas_gem = end - begin
-
-
-# print(f"custom: {time_for_custom_gemm}\ntorch: {time_for_torch_gem}\ncublas: {time_for_cublas_gem}")
-# print(f"Within {time_for_cublas_gem / time_for_custom_gemm}")
+pprint(optimizer_results)

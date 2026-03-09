@@ -6,5 +6,6 @@
     "/home/oak/dev/gemm/.venv/lib/python3.14/site-packages/nanobind/include",
     "${workspaceFolder}/src",
     "${workspaceFolder}/src/CudaKernels"
-  ]
+  ],
+  "cmake.sourceDirectory": "/home/oak/dev/gemm/src/CudaKernels"
 }

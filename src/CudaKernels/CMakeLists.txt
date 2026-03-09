@@ -18,7 +18,7 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE nanobind_ROOT)
 find_package(nanobind CONFIG REQUIRED)
 
-set(modules gemm_01 gemm_02 gemm_03 gemm_04 gemm_05 gemm_06 cublas test)
+set(modules gemm_01 gemm_02 gemm_03 gemm_04 gemm_05 gemm_06 gemm_07 cublas)
 
 foreach(mod IN LISTS modules)
     nanobind_add_module("${mod}" "${mod}.cu")
