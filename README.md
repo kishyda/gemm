@@ -1,8 +1,25 @@
 # CUDA GEMM Optimization
 
-A progressive, from-scratch implementation of General Matrix Multiplication (GEMM) in CUDA, advancing from a naive kernel to a Tensor Core-accelerated implementation that approaches cuBLAS performance.
+Implemented following Lei Mao's [CUDA Matrix Multiplication Optimization](https://leimao.github.io/article/CUDA-Matrix-Multiplication-Optimization/) guide — a progressive study of GEMM kernels in CUDA, advancing from a naive implementation to a Tensor Core-accelerated kernel that approaches cuBLAS performance.
 
-Each kernel introduces a concrete optimization technique — backed by a Bayesian hyperparameter search framework to find peak TFLOPS across matrix configurations.
+Additions beyond the guide: Python/CUDA bindings via nanobind and a Bayesian hyperparameter optimization framework for finding peak TFLOPS across matrix configurations.
+
+## Results  *(2048 × 2048 × 2048, float32)*
+
+![TFLOPS per kernel](assets/tflops.png)
+![% of cuBLAS](assets/pct_cublas.png)
+
+| Kernel | TFLOPS | % of cuBLAS |
+|--------|--------|-------------|
+| gemm_01 | 0.04 | 1.4% |
+| gemm_02 | 0.46 | 17.9% |
+| gemm_03 | 0.63 | 24.4% |
+| gemm_04 | 1.37 | 53.0% |
+| gemm_05 | 2.90 | **111.8%** |
+| gemm_06 | 2.66 | 102.9% |
+| gemm_07 | 3.05 | **117.7%** |
+| cuBLAS  | 2.59 | 100% |
+| torch   | 2.82 | — |
 
 ---
 
@@ -162,3 +179,9 @@ python main.py
 - cuBLAS integration as a performance ceiling
 - Python/CUDA interop via nanobind
 - Bayesian optimization for performance profiling
+
+---
+
+## References
+
+- Lei Mao — [CUDA Matrix Multiplication Optimization](https://leimao.github.io/article/CUDA-Matrix-Multiplication-Optimization/) — primary implementation reference for gemm_01 through gemm_07
